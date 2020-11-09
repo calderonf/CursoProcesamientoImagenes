@@ -27,14 +27,14 @@ obj[:, :2] = np.indices(board_sz).T.reshape(-1, 2)
 obj *= square_size
 
 
-vidStreamL = cv2.VideoCapture(1)  # index of your left camera
+vidStreamL = cv2.VideoCapture(2)  # index of your left camera
 vidStreamL.set(3,640)
 vidStreamL.set(4,480)
-vidStreamL.set(cv2.CAP_PROP_FPS,30)
-vidStreamR = cv2.VideoCapture(0)  # index of your right camera
+vidStreamL.set(cv2.CAP_PROP_FPS,10)
+vidStreamR = cv2.VideoCapture(1)  # index of your right camera
 vidStreamR.set(3,640)
 vidStreamR.set(4,480)
-vidStreamR.set(cv2.CAP_PROP_FPS,30)
+vidStreamR.set(cv2.CAP_PROP_FPS,10)
 success = 0
 k = 0
 found1 = False
@@ -44,8 +44,12 @@ countimg=0
 while (success < numBoards):
 
    retL, img1 = vidStreamL.read()
+   if not retL:
+       continue
    height, width, depth  = img1.shape
    retR, img2 = vidStreamR.read()
+   if not retR:
+       continue
    #resize(img1, img1, Size(320, 280));
    #resize(img2, img2, Size(320, 280));
    gray1 = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)
@@ -93,17 +97,20 @@ distCoeffs2 =  np.array([[ 0.08480433,0.37944639,-0.00166292,0.00301877,0.441983
 retval, cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, R, T, E, F = cv2.stereoCalibrate(object_points, imagePoints1, imagePoints2, cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, (width, height))
 ## , cv2.cvTermCriteria(cv2.CV_TERMCRIT_ITER+cv2.CV_TERMCRIT_EPS, 100, 1e-5),   cv2.CV_CALIB_SAME_FOCAL_LENGTH | cv2.CV_CALIB_ZERO_TANGENT_DIST)
 #cv2.cv.StereoCalibrate(object_points, imagePoints1, imagePoints2, pointCounts, cv.fromarray(K1), cv.fromarray(distcoeffs1), cv.fromarray(K2), cv.fromarray(distcoeffs2), imageSize, cv.fromarray(R), cv.fromarray(T), cv.fromarray(E), cv.fromarray(F), flags = cv.CV_CALIB_FIX_INTRINSIC)
-#FileStorage fs1("mystereocalib.yml", FileStorage::WRITE);
-# fs1 << "CM1" << CM1;
-#fs1 << "CM2" << CM2;
-# #fs1 << "D1" << D1;
-#fs1 << "D2" << D2;
-#fs1 << "R" << R;
-#fs1 << "T" << T;
-#fs1 << "E" << E;
-#fs1 << "F" << F;
+#ver https://docs.opencv.org/master/dd/d74/tutorial_file_input_output_with_xml_yml.html
+s = cv2.FileStorage("mystereocalib.yml", cv2.FileStorage_WRITE)
+s.write('CM1', CM1)
+s.write('CM2', CM2)
+s.write('D1', D1)
+s.write('D2', D2)
+s.write('R', R)
+s.write('T', T)
+s.write('E', E)
+s.write('F', F)
+
 print ("Done Calibration\n")
 print ("Starting Rectification\n")
+
 R1 = np.zeros(shape=(3,3))
 R2 = np.zeros(shape=(3,3))
 P1 = np.zeros(shape=(3,4))
@@ -111,12 +118,12 @@ P2 = np.zeros(shape=(3,4))
 
 cv2.stereoRectify(cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2,(width, height), R, T, R1, R2, P1, P2, Q=None, flags=cv2.CALIB_ZERO_DISPARITY, alpha=-1, newImageSize=(0,0))
 
-#fs1 << "R1" << R1;
-#fs1 << "R2" << R2;
-#fs1 << "P1" << P1;
-#fs1 << "P2" << P2;
-#fs1 << "Q" << Q;
-
+s.write('R1', R1)
+s.write('R2', R2)
+s.write('P1', P1)
+s.write('P2', P2)
+s.write('Q', Q)
+s.release()
 print ("Done Rectification\n")
 print ("Applying Undistort\n")
 
